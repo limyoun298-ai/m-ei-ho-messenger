@@ -1,0 +1,18 @@
+const SUPA_URL="https://azumnbymwhbaltxbphnr.supabase.co"
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6dW1uYnltd2hiYWx0eGJwaG5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwODAzMDQsImV4cCI6MjEwNzY1NjMwNH0.KXMl7IdCPrwxh8v15WaGIQKA-YIHPGcUKMaxCmNS8r0"
+const supa=supabase.createClient(SUPA_URL,SUPA_KEY)
+let me=JSON.parse(localStorage.getItem('me')||'null')
+let currentChat=null
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+async function subscribe(){let btn=document.getElementById('subBtn');btn.innerText='Abonné ✓';btn.style.background='#1E293B';btn.style.color='#fff';localStorage.setItem('subscribed','yes');alert('Abonné à @officiel_MEIHO! Tu recevras actus. from meiho')}
+window.onload=async()=>{if(!me){let p=prompt('@Pseudo');if(p){if(!p.startsWith('@'))p='@'+p;me={pseudo:p,id:p};localStorage.setItem('me',JSON.stringify(me))}}show('main');load()}
+async function load(){let {data}=await supa.from('users').select('*');let div=document.getElementById('list');div.innerHTML='';data?.forEach(u=>{if(u.pseudo!==me?.pseudo)div.innerHTML+=`<div onclick="openChat('${u.pseudo}')" style="padding:14px 16px;border-bottom:1px solid #202C33;display:flex;gap:12px;align-items:center"><img src="${u.photo||'https://via.placeholder.com/50'}" style="width:52px;height:52px;border-radius:50%"><div><b>${u.pseudo} ${u.badge_vert?'<span class=badge15><svg viewBox=0 0 12 12><path d=M2.5 6.5l2.5 2.5 4.5-5 /></svg></span>':''}</b><br><small style=color:#8696A0>en train d écrire...</small></div><small style=margin-left:auto;color:#8696A0>12/10/2026</small></div>`})}
+function switchTab(i){document.querySelectorAll('.b').forEach((b,idx)=>b.classList.toggle('active',idx===i));if(i===0)load();if(i===1)document.getElementById('list').innerHTML='<p style=padding:20px;color:#8696A0>Actus: @officiel_MEIHO a publié! Badge 15px disponible</p>';if(i===2)document.getElementById('list').innerHTML='<p style=padding:20px;color:#8696A0>Communautés: Crée groupe mondial</p>';if(i===3)document.getElementById('list').innerHTML='<p style=padding:20px;color:#8696A0>Appels récents 📞</p>'}
+function toggleMenu(){let m=document.getElementById('menu');m.style.display=m.style.display==='block'?'none':'block'}
+function openChat(p){currentChat=p;document.getElementById('cName').innerText=p;show('chat');loadMsgs();document.getElementById('typing').innerText='en train d écrire...';setTimeout(()=>document.getElementById('typing').innerText='en ligne',2000)}
+function back(){show('main')}
+async function loadMsgs(){let {data}=await supa.from('messages').select('*').or(`and(from_user.eq.${me.pseudo},to_user.eq.${currentChat}),and(from_user.eq.${currentChat},to_user.eq.${me.pseudo})`).order('heure',{ascending:true});let d=document.getElementById('msgs');d.innerHTML='';data?.forEach(m=>{d.innerHTML+=`<div style="max-width:70%;padding:8px 12px;border-radius:12px;margin:6px 0;${m.from_user===me.pseudo?'background:#005C4B;margin-left:auto':'background:#202C33'}">${m.message}</div>`});d.scrollTop=d.scrollHeight}
+async function send(){let i=document.getElementById('msgIn');if(!i.value.trim())return;let t=i.value;i.value='';await supa.from('messages').insert({id:Date.now().toString(),from_user:me.pseudo,to_user:currentChat,message:t,heure:new Date().toISOString()});loadMsgs()}
+function createGroup(){let n=prompt('Nom groupe mondial:');if(n)alert('Groupe '+n+' créé! from meiho');toggleMenu()}
+function openParams(){alert('Paramètres: Badge 15px, Thème sombre #070A14, Langue 8 langues, from meiho 12px');toggleMenu()}
+function searchAll(){let q=document.getElementById('searchInput').value;if(q)load()}
