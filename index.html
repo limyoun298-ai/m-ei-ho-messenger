@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b141a">
+<title>MEIHO Messenger</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0b141a;--panel:#202c33;--card:#182229;--green:#25d366;--text:#e9edef;--muted:#8696a0;--line:#2a3942;--blue:#53bdeb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+button,input,textarea{font:inherit}
+button{cursor:pointer;border:0}
+.hidden{display:none!important}
+header{height:60px;background:var(--panel);display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:sticky;top:0;z-index:5}
+.brand{font-size:23px;font-weight:bold;color:var(--green)}
+.icon{background:transparent;color:var(--text);font-size:23px;padding:8px}
+.page{display:none;padding-bottom:90px;min-height:calc(100vh - 60px)}
+.page.active{display:block}
+.content{padding:14px}
+input,textarea{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);background:#111b21;color:var(--text);outline:none;margin:5px 0 12px}
+input:focus,textarea:focus{border-color:var(--green)}
+label{font-size:13px;color:var(--muted)}
+.btn{background:var(--green);color:#052e16;padding:13px 16px;border-radius:10px;font-weight:bold}
+.btn.secondary{background:var(--panel);color:var(--text)}
+.full{width:100%}
+.card{background:var(--panel);border-radius:12px;padding:15px;margin:10px 0}
+.muted{color:var(--muted);font-size:13px}
+.section-title{font-weight:bold;margin:18px 0 10px}
+.row{display:flex;align-items:center;gap:12px}
+.between{justify-content:space-between}
+.avatar{width:46px;height:46px;flex-shrink:0;border-radius:50%;background:#075e54;display:grid;place-items:center;font-weight:bold;font-size:19px}
+.item{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);width:100%;background:transparent;color:var(--text);text-align:left}
+.item-main{flex:1;min-width:0}
+.item-title{font-weight:bold;overflow-wrap:anywhere}
+.item-sub{font-size:13px;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}
+.check{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#53bdeb;color:#fff;font-size:10px;font-weight:bold}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:var(--panel);display:flex;justify-content:space-around;padding:8px 2px calc(8px + env(safe-area-inset-bottom));z-index:10;border-top:1px solid var(--line)}
+.bottom button{background:transparent;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:55px}
+.bottom button span:first-child{font-size:21px}
+.bottom button.active{color:var(--green)}
+#auth{max-width:440px;margin:auto;padding:24px}
+#auth h1{text-align:center;color:var(--green)}
+#auth .card{padding:22px}
+#chatPage{height:calc(100dvh - 60px);padding-bottom:0;flex-direction:column}
+#chatPage.active{display:flex}
+.chathead{background:var(--panel);padding:10px;display:flex;align-items:center;gap:10px}
+#messages{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:9px}
+.bubble{max-width:82%;padding:10px 12px;border-radius:12px;background:var(--panel);overflow-wrap:anywhere}
+.bubble.mine{align-self:flex-end;background:#005c4b}
+.time{font-size:10px;color:#c5d4d9;text-align:right;margin-top:5px}
+.composer{display:flex;gap:7px;padding:10px;background:var(--panel);padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+.composer input{margin:0;border-radius:22px}
+.composer button{border-radius:50%;width:45px;flex-shrink:0}
+.empty{text-align:center;padding:28px 12px;color:var(--muted);font-size:14px}
+#toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#293840;padding:12px 16px;border-radius:10px;z-index:30;max-width:90%;font-size:13px}
+.badge{background:#53bdeb;color:white;border-radius:50%;font-size:11px;padding:2px 5px}
+#officialComposer{background:#202c33;text-align:center;padding:14px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">MEIHO</div>
+  <button class="icon" onclick="showPage('settings')">⋮</button>
+</header>
+
+<section id="auth">
+  <h1>MEIHO Messenger</h1>
+  <div class="card">
+    <h2 id="authTitle">Créer un compte</h2>
+    <div id="registerFields">
+      <label>Nom affiché</label>
+      <input id="fullName" placeholder="Ton nom" maxlength="40">
+      <label>Nom d'utilisateur</label>
+      <input id="username" placeholder="@utilisateur" maxlength="24">
+    </div>
+    <label>Adresse e-mail</label>
+    <input id="email" type="email" placeholder="toi@exemple.com" autocomplete="email">
+    <label>Mot de passe</label>
+    <input id="password" type="password" placeholder="Au moins 8 caractères" autocomplete="current-password">
+    <button class="btn full" id="authButton" onclick="authenticate()">Créer mon compte</button>
+    <p style="text-align:center">
+      <button class="btn secondary" onclick="toggleAuth()" id="switchAuth">J'ai déjà un compte</button>
+    </p>
+    <p class="muted">L'authentification utilise Supabase. Ne partage jamais ton mot de passe.</p>
+  </div>
+</section>
+
+<main id="app" class="hidden">
+
+<section id="discussions" class="page active">
+  <div class="content">
+    <input id="search" placeholder="Rechercher une discussion" oninput="renderChats()">
+    <div class="card row between">
+      <div class="row">
+        <div class="avatar">M</div>
+        <div>
+          <div class="item-title">MEIHO Official <span class="check">✓</span></div>
+          <div class="item-sub">Chaîne officielle</div>
+        </div>
+      </div>
+      <button class="btn" onclick="openOfficial()">Voir</button>
+    </div>
+    <div class="section-title">Discussions</div>
+    <div id="chatList"></div>
+    <div class="section-title">Trouver un membre</div>
+    <button class="btn full" onclick="findMembers()">Rechercher des membres</button>
+    <div id="peopleList"></div>
+  </div>
+</section>
+
+<section id="actus" class="page">
+  <div class="content">
+    <div class="row between">
+      <h2>Actus</h2>
+      <button class="btn" onclick="createChannel()">＋ Créer</button>
+    </div>
+    <div class="card">
+      <b>MEIHO Official <span class="check">✓</span></b>
+      <p class="muted">Chaîne officielle en lecture seule.</p>
+    </div>
+    <div class="section-title">Mes chaînes</div>
+    <div id="channels"></div>
+  </div>
+</section>
+
+<section id="community" class="page">
+  <div class="content">
+    <div class="row between">
+      <h2>Communauté</h2>
+      <button class="btn" onclick="createGroup()">＋ Groupe</button>
+    </div>
+    <div id="groups"></div>
+  </div>
+</section>
+
+<section id="calls" class="page">
+  <div class="content">
+    <h2>Appels</h2>
+    <div class="card">
+      Les appels audio et vidéo ne sont pas encore activés dans cette version.
+    </div>
+  </div>
+</section>
+
+<section id="settings" class="page">
+  <div class="content">
+    <h2>Paramètres</h2>
+    <div class="card">
+      <div class="avatar" id="myAvatar">M</div>
+      <h3 id="myName">Mon profil</h3>
+      <p id="myUsername" class="muted"></p>
+      <button class="btn" onclick="editProfile()">Modifier mon profil</button>
+    </div>
+    <button class="item" onclick="showBadge()">✓ Demander un badge</button>
+    <button class="item" onclick="changeLanguage()">🌐 Langue</button>
+    <button class="item" onclick="showAbout()">ℹ À propos</button>
+    <button class="item" onclick="logout()">↪ Déconnexion</button>
+  </div>
+</section>
+
+<section id="chatPage" class="page">
+  <div class="chathead">
+    <button class="icon" onclick="showPage('discussions')">‹</button>
+    <div class="avatar" id="chatAvatar">M</div>
+    <div style="flex:1">
+      <div id="chatName" class="item-title">Discussion</div>
+      <div id="chatStatus" class="item-sub">MEIHO</div>
+    </div>
+  </div>
+  <div id="messages"></div>
+  <div id="officialComposer" class="hidden">🔒 Chaîne lecture seule - Personne ne peut envoyer</div>
+  <div id="composer" class="composer">
+    <input id="messageInput" placeholder="Message" onkeydown="if(event.key==='Enter')sendMessage()">
+    <button class="btn" onclick="sendMessage()">➤</button>
+  </div>
+</section>
+
+</main>
+
+<nav id="bottomNav" class="bottom hidden">
+  <button class="active" data-page="discussions" onclick="showPage('discussions')"><span>◷</span><span>Discussions</span></button>
+  <button data-page="actus" onclick="showPage('actus')"><span>◉</span><span>Actus</span></button>
+  <button data-page="community" onclick="showPage('community')"><span>♧</span><span>Communauté</span></button>
+  <button data-page="calls" onclick="showPage('calls')"><span>⌕</span><span>Appels</span></button>
+  <button data-page="settings" onclick="showPage('settings')"><span>☰</span><span>Menu</span></button>
+</nav>
+
+<div id="toast" class="hidden"></div>
+
+<script>
+"use strict";
+
+/* Configuration Supabase */
+const SUPABASE_URL = "https://azumnbymwhbaltxbphnr.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6dW1uYnltd2hiYWx0eGJwaG5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwODAzMDQsImV4cCI6MjEwNzY1NjMwNH0.KXMl7IdCPrwxh8v15WaGIQKA-YIHPGcUKMaxCmNS8r0";
+
+const db = window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
+
+const $ = id => document.getElementById(id);
+const USER_KEY = "meiho_current_user";
+const CHATS_KEY = "meiho_chats";
+const CHANNELS_KEY = "meiho_channels";
+const GROUPS_KEY = "meiho_groups";
+
+let currentUser = null;
+let activeChat = null;
+let officialChat = false;
+let currentMessages = [];
+let channelSubscription = null;
+let loginMode = false;
+
+function read(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function write(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  })[c]);
+}
+
+function toast(message) {
+  const box = $("toast");
+  box.textContent = message;
+  box.classList.remove("hidden");
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => box.classList.add("hidden"), 3000);
+}
+
+function initials(name) {
+  return String(name || "M").trim().slice(0, 1).toUpperCase();
+}
+
+function toggleAuth() {
+  loginMode = !loginMode;
+  $("authTitle").textContent = loginMode ? "Connexion" : "Créer un compte";
+  $("authButton").textContent = loginMode ? "Se connecter" : "Créer mon compte";
+  $("switchAuth").textContent = loginMode ? "Créer un compte" : "J'ai déjà un compte";
+  $("registerFields").classList.toggle("hidden", loginMode);
+}
+
+async function authenticate() {
+  if (!db) {
+    toast("Connexion à Supabase impossible.");
+    return;
+  }
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+
+  if (!email || !password) {
+    toast("Entre ton e-mail et ton mot de passe.");
+    return;
+  }
+
+  try {
+    let result;
+
+    if (loginMode) {
+      result = await db.auth.signInWithPassword({ email, password });
+    } else {
+      const name = $("fullName").value.trim();
+      let username = $("username").value.trim().replace(/^@/, "");
+
+      if (!name || username.length < 3) {
+        toast("Entre ton nom et un nom d'utilisateur.");
+        return;
+      }
+
+      if (password.length < 8) {
+        toast("Le mot de passe doit contenir au moins 8 caractères.");
+        return;
+      }
+
+      result = await db.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            username: "@" + username
+          }
+        }
+      });
+    }
+
+    if (result.error) throw result.error;
+
+    const user = result.data.user;
+    if (!user) {
+      toast("Vérifie ta boîte e-mail si Supabase demande une confirmation.");
+      return;
+    }
+
+    currentUser = {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.full_name || email.split("@")[0],
+      username: user.user_metadata?.username || "@meiho",
+      bio: ""
+    };
+
+    write(USER_KEY, currentUser);
+
+    if (!result.data.session && !loginMode) {
+      toast("Compte créé. Confirme ton e-mail, puis connecte-toi.");
+      toggleAuth();
+      return;
+    }
+
+    startApp();
+  } catch (error) {
+    toast(error.message || "Une erreur est survenue.");
+  }
+}
+
+function startApp() {
+  $("auth").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("bottomNav").classList.remove("hidden");
+  renderProfile();
+  renderChats();
+  renderChannels();
+  renderGroups();
+  loadMembers();
+}
+
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  const page = $(id === "chatPage" ? "chatPage" : id);
+  if (page) page.classList.add("active");
+
+  document.querySelectorAll(".bottom button").forEach(b => {
+    b.classList.toggle("active", b.dataset.page === id);
+  });
+
+  $("bottomNav").classList.toggle("hidden", id === "chatPage");
+}
+
+function renderProfile() {
+  if (!currentUser) return;
+  $("myName").textContent = currentUser.name || "MEIHO";
+  $("myUsername").textContent = currentUser.username || "";
+  $("myAvatar").textContent = initials(currentUser.name);
+}
+
+function renderChats() {
+  const chats = read(CHATS_KEY, []);
+  const query = ($("search")?.value || "").toLowerCase();
+  const filtered = chats.filter(c =>
+    (c.name || "").toLowerCase().includes(query)
+  );
+
+  $("chatList").innerHTML = filtered.length
+    ? filtered.map(c => `
+      <button class="item" onclick="openChat('${escapeHTML(c.id)}')">
+        <div class="avatar">${escapeHTML(initials(c.name))}</div>
+        <div class="item-main">
+          <div class="item-title">${escapeHTML(c.name)}</div>
+          <div class="item-sub">${escapeHTML(c.last || "Touchez pour discuter")}</div>
+        </div>
+      </button>`).join("")
+    : '<div class="empty">Aucune discussion enregistrée sur cet appareil.</div>';
+}
+
+function openOfficial() {
+  officialChat = true;
+  activeChat = { id: "meiho-official", name: "MEIHO Official" };
+  $("chatName").innerHTML = 'MEIHO Official <span class="check">✓</span>';
+  $("chatAvatar").textContent = "M";
+  $("chatStatus").textContent = "Chaîne officielle";
+  $("composer").classList.add("hidden");
+  $("officialComposer").classList.remove("hidden");
+  $("messages").innerHTML =
+    '<div class="empty">🔒 Chaîne lecture seule - Personne ne peut envoyer</div>';
+  showPage("chatPage");
+}
+
+function openChat(id) {
+  const chats = read(CHATS_KEY, []);
+  activeChat = chats.find(c => c.id === id);
+  if (!activeChat) return;
+
+  officialChat = false;
+  $("chatName").textContent = activeChat.name;
+  $("chatAvatar").textContent = initials(activeChat.name);
+  $("chatStatus").textContent = "Discussion";
+  $("composer").classList.remove("hidden");
+  $("officialComposer").classList.add("hidden");
+
+  currentMessages = read("meiho_messages_" + id, []);
+  renderMessages();
+  showPage("chatPage");
+}
+
+function renderMessages() {
+  const host = $("messages");
+
+  if (!currentMessages.length) {
+    host.innerHTML = '<div class="empty">Envoyez votre premier message.</div>';
+    return;
+  }
+
+  host.innerHTML = currentMessages.map(m => `
+    <div class="bubble ${m.sender === currentUser.id ? "mine" : ""}">
+      ${escapeHTML(m.text)}
+      <div class="time">${new Date(m.time).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })}</div>
+    </div>
+  `).join("");
+
+  host.scrollTop = host.scrollHeight;
+}
+
+async function sendMessage() {
+  if (!activeChat || officialChat) return;
+
+  const input = $("messageInput");
+  const text = input.value.trim();
+
+  if (!text) return;
+
+  const message = {
+    id: Date.now().toString(),
+    text,
+    sender: currentUser.id,
+    time: new Date().toISOString()
+  };
+
+  currentMessages.push(message);
+  write("meiho_messages_" + activeChat.id, currentMessages);
+  renderMessages();
+  input.value = "";
+
+  const chats = read(CHATS_KEY, []);
+  const chat = chats.find(c => c.id === activeChat.id);
+
+  if (chat) {
+    chat.last = text;
+    write(CHATS_KEY, chats);
+    renderChats();
+  }
+
+  toast("Message enregistré sur cet appareil.");
+}
+
+async function loadMembers() {
+  if (!db) return;
+
+  const host = $("peopleList");
+  host.innerHTML = '<div class="empty">Chargement des membres…</div>';
+
+  const { data, error } = await db
+    .from("meiho_profiles")
+    .select("id,full_name,username")
+    .limit(30);
+
+  if (error) {
+    host.innerHTML =
+      '<div class="empty">La table meiho_profiles doit être créée dans Supabase.</div>';
+    return;
+  }
+
+  const people = (data || []).filter(p => p.id !== currentUser.id);
+
+  host.innerHTML = people.length ? people.map(p => `
+    <div class="item">
+      <div class="avatar">${escapeHTML(initials(p.full_name))}</div>
+      <div class="item-main">
+        <div class="item-title">${escapeHTML(p.full_name || "Membre")}</div>
+        <div class="item-sub">${escapeHTML(p.username || "")}</div>
+      </div>
+      <button class="btn" onclick="startChat('${escapeHTML(p.id)}','${escapeHTML(p.full_name || "Membre")}')">
+        Message
+      </button>
+    </div>
+  `).join("") : '<div class="empty">Aucun autre membre trouvé.</div>';
+}
+
+function findMembers() {
+  loadMembers();
+  toast("Recherche des membres.");
+}
+
+function startChat(id, name) {
+  const chats = read(CHATS_KEY, []);
+  let chat = chats.find(c => c.id === id);
+
+  if (!chat) {
+    chat = { id, name, last: "" };
+    chats.unshift(chat);
+    write(CHATS_KEY, chats);
+  }
+
+  renderChats();
+  openChat(id);
+}
+
+function createChannel() {
+  const name = prompt("Nom de la chaîne :");
+  if (!name?.trim()) return;
+
+  const channels = read(CHANNELS_KEY, []);
+  channels.unshift({
+    id: Date.now().toString(),
+    name: name.trim(),
+    owner: currentUser.id
+  });
+
+  write(CHANNELS_KEY, channels);
+  renderChannels();
+  toast("Chaîne enregistrée sur cet appareil.");
+}
+
+function renderChannels() {
+  const channels = read(CHANNELS_KEY, []);
+  $("channels").innerHTML = channels.length
+    ? channels.map(c => `
+      <div class="item">
+        <div class="avatar">${escapeHTML(initials(c.name))}</div>
+        <div class="item-main">
+          <div class="item-title">${escapeHTML(c.name)}</div>
+          <div class="item-sub">Votre chaîne</div>
+        </div>
+      </div>`).join("")
+    : '<div class="empty">Aucune chaîne créée.</div>';
+}
+
+function createGroup() {
+  const name = prompt("Nom du groupe :");
+  if (!name?.trim()) return;
+
+  const groups = read(GROUPS_KEY, []);
+  groups.unshift({
+    id: Date.now().toString(),
+    name: name.trim(),
+    owner: currentUser.id,
+    members: [currentUser.id]
+  });
+
+  write(GROUPS_KEY, groups);
+  renderGroups();
+  toast("Groupe enregistré sur cet appareil.");
+}
+
+function renderGroups() {
+  const groups = read(GROUPS_KEY, []);
+  $("groups").innerHTML = groups.length
+    ? groups.map(g => `
+      <div class="item">
+        <div class="avatar">${escapeHTML(initials(g.name))}</div>
+        <div class="item-main">
+          <div class="item-title">${escapeHTML(g.name)}</div>
+          <div class="item-sub">${g.members.length} membre(s)</div>
+        </div>
+      </div>`).join("")
+    : '<div class="empty">Aucun groupe pour le moment.</div>';
+}
+
+function showBadge() {
+  alert("Le badge MEIHO doit être validé côté serveur. Cette interface ne peut pas certifier un compte à elle seule.");
+}
+
+function editProfile() {
+  const name = prompt("Nouveau nom :", currentUser.name || "");
+  if (!name?.trim()) return;
+
+  currentUser.name = name.trim();
+  write(USER_KEY, currentUser);
+  renderProfile();
+  toast("Nom modifié sur cet appareil.");
+}
+
+function changeLanguage() {
+  const lang = prompt("Choisis une langue : fr, en, es", "fr");
+  if (lang) toast("La traduction complète doit être configurée.");
+}
+
+function showAbout() {
+  alert("MEIHO Messenger — prototype de messagerie. Certaines fonctions nécessitent encore une configuration serveur.");
+}
+
+async function logout() {
+  if (db) await db.auth.signOut();
+  currentUser = null;
+  activeChat = null;
+  $("app").classList.add("hidden");
+  $("bottomNav").classList.add("hidden");
+  $("auth").classList.remove("hidden");
+  toast("Déconnexion effectuée.");
+}
+
+async function boot() {
+  if (!db) {
+    toast("Supabase n'est pas chargé.");
+    return;
+  }
+
+  const { data } = await db.auth.getSession();
+
+  if (data.session) {
+    const user = data.session.user;
+    currentUser = {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.full_name || user.email.split("@")[0],
+      username: user.user_metadata?.username || "@meiho"
+    };
+    write(USER_KEY, currentUser);
+    startApp();
+  }
+
+  db.auth.onAuthStateChange((_event, session) => {
+    if (!session) return;
+    const user = session.user;
+    currentUser = {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.full_name || user.email.split("@")[0],
+      username: user.user_metadata?.username || "@meiho"
+    };
+    write(USER_KEY, currentUser);
+    startApp();
+  });
+}
+
+boot();
+</script>
+</body>
+  </html>
