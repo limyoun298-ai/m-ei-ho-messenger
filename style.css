@@ -1,0 +1,26 @@
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{background:#070A14;color:#fff}
+#app{max-width:480px;margin:0 auto;height:100vh;background:#070A14;display:flex;flex-direction:column}
+.screen{display:none;height:100vh;flex-direction:column}.screen.active{display:flex}
+#splash{justify-content:center;align-items:center}
+.logo-pulse{width:120px;height:120px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;animation:pulse 1.5s infinite}
+.logo-pulse span{color:#2563EB;font-size:20px;font-weight:900}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+.top-bar{height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #1E293B}
+.top-icons{display:flex;gap:18px}
+.icon-svg{width:24px;height:24px;stroke:#fff;stroke-width:1.8;fill:none}
+.bottom-nav{height:78px;display:flex;border-top:1px solid #1E293B;background:#070A14}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9CA3AF;font-size:12px;gap:4px;position:relative}
+.nav-item.active{color:#fff}
+.nav-dot{position:absolute;top:6px;width:6px;height:6px;background:#2563EB;border-radius:50%}
+.nav-icon{width:26px;height:26px;stroke:currentColor;stroke-width:1.6;fill:none}
+.official-card{margin:12px;background:#1E293B;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;border:1px solid #2563EB}
+.m-logo{width:48px;height:48px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#2563EB;font-weight:900;font-size:20px}
+.badge-verif{width:15px;height:15px;background:#00C950;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-left:6px}
+.badge-verif svg{width:8px;height:8px;stroke:#fff;stroke-width:3;fill:none}
+.from-meiho{color:#9CA3AF;font-size:12px;text-align:center;padding:6px}.from-meiho.left{text-align:left;margin-top:4px}
+.btn-sub{margin-left:auto;background:#2563EB;color:#fff;border:none;padding:6px 14px;border-radius:20px}
+.btn-blue{background:#2563EB;color:#fff;border:none;padding:14px;border-radius:12px;width:100%;margin-top:10px}
+.dropdown{position:absolute;top:62px;right:10px;background:#1E293B;border-radius:10px;display:none;z-index:10;width:180px}
+.dropdown div{padding:12px;border-bottom:1px solid #2a3942}
+#auth{padding:25px}#auth input{width:100%;padding:14px;margin:8px 0;border-radius:12px;border:none;background:#1E293B;color:#fff}
